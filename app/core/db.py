@@ -40,7 +40,7 @@ def load_vectors(table, key, connection=None):
         rows.append(json.loads(vector))
 
     # 객체안쪽에 있는 vector안쪽의 좌표값을 다시 숫자형태로 변경
-    return ids, np.array(rows, dytpe="float3")
+    return ids, np.array(rows, dtype="float32")
 
 
 
