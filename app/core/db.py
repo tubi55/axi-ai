@@ -45,6 +45,9 @@ def load_vectors(table, key, connection=None):
 
 
 
+
+
+
 if __name__ == "__main__":
     print("고객 수:", one("SELECT COUNT(*) FROM customers")[0])
     print("상품 수:", one("SELECT COUNT(*) FROM products")[0])
