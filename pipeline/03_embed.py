@@ -73,7 +73,7 @@ con.execute("PRAGMA foreign_keys = ON")
 targets = {}
 """
 targets = {
-  "chunk": ("chunk_id", "chunks", [제품상세설명 조각들],),
+  "chunk": ("chunk_id", "chunks", [제품상세설명 순번], [제품상세설명 조각들],),
   "product": ("product_id", "product", [제품아이디], [제품한줄설명]),
   "customer": ("customer_id", "customers", [고객아이디], [고객설명]),
   "review": ("purchase_id", "purchases", [후기순번], [후기내용])
