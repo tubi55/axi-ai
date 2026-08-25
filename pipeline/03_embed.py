@@ -52,10 +52,8 @@ sys.stdout.reconfigure(errors="replace")
 
 from huggingface_hub.utils import disable_progress_bars
 from huggingface_hub.utils import logging as hub_logging
-from transformers import logging as hf_logging
 
-hf_logging.set_verbosity_error()
-hf_logging.disable_progress_bar()
+
 hub_logging.set_verbosity_error()
 disable_progress_bars()
 
@@ -73,6 +71,14 @@ con.execute("PRAGMA foreign_keys = ON")
 
 # 임베딩할 네 종류의 정보를 모아 둘 딕셔너리
 targets = {}
+"""
+targets = {
+  "chunk": ("chunk_id", "chunks", [제품상세설명 조각들],),
+  "product": ("product_id", "product", [제품아이디], [제품한줄설명]),
+  "customer": ("customer_id", "customers", [고객아이디], [고객설명]),
+  "review": ("purchase_id", "purchases", [후기순번], [후기내용])
+}
+"""
 
 
 # 제품 상세 설명의 조각들 targets["chunk"]에 등록 
@@ -103,7 +109,6 @@ for cid, category, ingredient, concern, rating in con.execute("""
     ORDER BY purchases.customer_id, purchases.purchase_id
 """):
   # 고객 ID가 처음 나오면 빈 목록을 만들고, 그 고객의 구매 정보를 추가한다.
-  # 첫 번째 None은 현재 사용하지 않는 자리이며, 뒤의 인덱스를 맞추기 위해 둔다.
   history.setdefault(cid, []).append(( category, ingredient, concern, rating))
 
 
