@@ -145,7 +145,9 @@ for label, func in VARIANTS:
     # 고객별 순번과 고객 id하나씩 가져와서 코사인유사도로 추천 제품 목록 줄세우기
     for i, cid in enumerate(cids):
         order = np.argsort( -(product_vectors @ customer_vectors[i]))
-        ranked = [ product_ids[j] for j in order if product_ids[j] not in bought.get(cid, ())]
+        # 아래 구문은 고객이 구매하지 않은 제품 목록중에서 추천할만한 제품 정보를 반환받고 싶을때 사용
+        # ranked = [ product_ids[j] for j in order if product_ids[j] not in bought.get(cid, ())]
+        ranked = [ product_ids[j] for j in order]
         # print(ranked)
 
         # 각 고객 정보의 추천도 카운트 정보를 hits에 옮겨담음
