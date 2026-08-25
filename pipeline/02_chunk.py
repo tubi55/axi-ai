@@ -26,7 +26,7 @@ details = con.execute("""
 """).fetchall()
 
 # 이 한 줄이 자르기의 전부다. 어떻게 자르는지는 prep/chunking.py 가 안다
-sections, chunks, n_resplit = chunking.split_details(details)
+sections, chunks = chunking.split_details(details)
 
 #  이 한 줄이 저장의 전부다. 어떻게 넣는지는 prep/storage.py 가 안다
 storage.save_sections_and_chunks(con, sections, chunks)
