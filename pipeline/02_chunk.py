@@ -8,7 +8,6 @@ sys.stdout.reconfigure(errors="replace")
 from huggingface_hub.utils import disable_progress_bars
 from huggingface_hub.utils import logging as hub_logging
 
-
 hub_logging.set_verbosity_error()
 disable_progress_bars()
 
@@ -18,8 +17,6 @@ from pipeline.prep import chunking, storage
 
 con = sqlite3.connect(DB_PATH)
 con.execute("PRAGMA foreign_keys = ON")
-
-
 
 details = con.execute("""
       SELECT product_details.product_id, products.name, product_details.detail
