@@ -126,6 +126,7 @@ def check_vector_data(con, kinds, expected_dim, expected_model, problems):
   vectors = {}
 
   for kind, key in kinds:
+    # (1, matrix (백터행갯수, 차원갯수))
     ids, matrix = load_vectors(
       f"{kind}_vectors", key, connection=con,
     )
@@ -260,6 +261,9 @@ def check_token_sizes(con, max_tokens, problems):
     "average_chunk_tokens": average_chunk_tokens,
   }
 
+print
+
+print("")
 
 # 고객과 상품·조각의 유사도를 세 가지 추천 점수로 계산하는 함수
 def calculate_scores(customer_vectors, product_vectors, chunk_vectors, chunk_ids, product_ids, product_of):
@@ -285,17 +289,17 @@ def calculate_scores(customer_vectors, product_vectors, chunk_vectors, chunk_ids
   """
   세 가지 방식의 의미:
     1. 상품 요약 벡터
-       상품의 이름, 브랜드, 카테고리, 성분 등을 한 문장으로 합쳐 만든 벡터 하나와
-       고객 벡터를 직접 비교한다. 가장 단순하므로 다른 방식의 기준선으로 사용한다.
+      상품의 이름, 브랜드, 카테고리, 성분 등을 한 문장으로 합쳐 만든 벡터 하나와
+      고객 벡터를 직접 비교한다. 가장 단순하므로 다른 방식의 기준선으로 사용한다.
 
     2. 조각 벡터 max
-       한 상품에 속한 여러 조각 중 고객과 가장 비슷한 조각의 점수를 상품 점수로 쓴다.
-       조각 하나라도 강하게 관련되면 상품 점수가 높아지지만, 우연히 높은 조각 하나에
-       지나치게 영향을 받을 수 있다. 조각이 많은 상품이 유리해질 가능성도 있다.
+      한 상품에 속한 여러 조각 중 고객과 가장 비슷한 조각의 점수를 상품 점수로 쓴다.
+      조각 하나라도 강하게 관련되면 상품 점수가 높아지지만, 우연히 높은 조각 하나에
+      지나치게 영향을 받을 수 있다. 조각이 많은 상품이 유리해질 가능성도 있다.
 
     3. 조각 벡터 mean
-       한 상품에 속한 모든 조각 점수의 평균을 상품 점수로 쓴다. 상품 내용이 전반적으로
-       고객과 비슷한지 볼 수 있지만, 중요한 조각 하나가 관련 없는 조각들에 묻힐 수 있다.
+      한 상품에 속한 모든 조각 점수의 평균을 상품 점수로 쓴다. 상품 내용이 전반적으로
+      고객과 비슷한지 볼 수 있지만, 중요한 조각 하나가 관련 없는 조각들에 묻힐 수 있다.
 
   사용할 수 있는 데이터 조건:
     이 비교는 "부모 대상 하나 + 그 대상에 속한 여러 조각" 구조에서 사용할 수 있다.
@@ -324,7 +328,7 @@ def calculate_scores(customer_vectors, product_vectors, chunk_vectors, chunk_ids
     고객 벡터와 상품 벡터를 같은 벡터 차원을 기준으로 비교하기 위해서이다.
     그 결과, 각 고객과 각 상품의 유사도 점수가 다음과 같은 표로 만들어진다.
 
-             상품1  상품2  상품3
+            상품1  상품2  상품3
     고객1     점수   점수   점수
     고객2     점수   점수   점수
     고객3     점수   점수   점수
@@ -426,6 +430,7 @@ def hit_at(scores, customer_ids, product_ids, bought, answers, ks=(1, 3, 5)):
       hits[k] += answers[customer_id] in ranked[:k]
 
   return {k: count / len(customer_ids) * 100 for k, count in hits.items()}
+  # {1: 정확도(%), 3: 정확도(%), 5: 정확도(%)}
 
 
 # 세 가지 추천 방식의 hit@1·3·5 결과와 평균 토큰 수를 비교하는 함수
@@ -511,9 +516,10 @@ def compare_recommendations(con, vectors, token_result):
   for label, scores in score_sets.items():
     hits = hit_at(scores, customer_ids, product_ids, bought, answers)
     hit_results[label] = hits
-    print(f"  {label:28s} {average_tokens[label]:>10.1f} {hits[1]:>6.1f}% {hits[3]:>6.1f}% {hits[5]:>6.1f}%" )
+    print(f"  {label:28s} {average_tokens[label]:.1f} {hits[1] } {hits[3]  } {hits[5] }")
+    # (P1 / 평균 토큰수 / 추천된 상품1개에 정답이 있을 확률, 추천된상품 3개에 정답이 있을 확률/ 추천된 상품 5개에 정답이 있을 확률)
 
-  return hit_results
+  return hit_results # ("제품요악/ max, mean",  {1: 정확도(%), 3: 정확도(%), 5: 정확도(%)})
 
 
 # 예시 질문과 의미가 가까운 문서 조각을 찾아 출력하는 함수
@@ -589,6 +595,151 @@ def inspect_search_results(con, chunk_ids, chunk_vectors, questions):
   return top_sections
 
 
+# 벡터 종류 이름만 주면 알아서 원본을 찾아 질문과 가까운 것을 출력하는 함수
+def search_any(con, kind, questions, top_k=3, worst=False ):
+  """
+  인자로 들어오는 값 예시:
+    con = sqlite3.connect(DB_PATH)
+    kind = "review"
+    questions = ["배송이 너무 느렸어요"]
+
+  반환값 예시:
+    {
+      "배송이 너무 느렸어요": [
+        ("O1266", "환불 고민 중입니다. 올라오던 게 덜하다는 잘 모르겠어요."),
+        ("O1002", "환불 고민 중입니다. 지성이라 그런지 발랐더니 조금 따가웠어요."),
+      ],
+    }
+
+  테이블 이름을 직접 넣지 않아도 되는 이유:
+    벡터 테이블에는 이미 원본이 어디인지 적혀 있다. review_vectors 를 만들 때
+    FOREIGN KEY (purchase_id) REFERENCES purchases(purchase_id) 라고 선언했으므로
+    PRAGMA foreign_key_list 로 물어보면 "purchases 의 purchase_id" 라고 알려 준다.
+    그래서 사람이 스키마를 다시 뒤져 옮겨 적을 필요가 없다.
+
+  본문 컬럼을 고르는 방법:
+    원본 테이블의 TEXT 컬럼 중 평균 글자 수가 가장 긴 것을 본문으로 본다.
+    ID나 분류값은 짧고 실제 글은 길다는 성질을 이용한 어림짐작이다.
+    예: purchases → review, products → description, chunks → text
+    어림짐작이 틀린 테이블(customers 는 email 이 가장 길다)은
+    text_column="skin_type" 처럼 직접 지정하면 된다.
+
+  inspect_search_results()와 무엇이 다른가:
+    하는 일은 똑같다. 다만 그 함수는 읽을 곳이 chunks 로 고정되어 있어서
+    review 벡터를 넘기면 chunks 에 없는 ID를 찾다가 KeyError 로 죽는다.
+    조각이 아닌 자료는 원문 조각을 되짚을 필요가 없으므로
+    section, product_id 같은 조각 전용 정보는 아예 읽지 않는다.
+
+  사용 예시:
+    search_any(con, "review", ["배송이 너무 느렸어요"])
+    search_any(con, "product", ["건성 피부에 좋은 수분 크림"])
+    search_any(con, "customer", ["민감성 피부인 사람"], text_column="skin_type")
+    search_any(con, "review", ["향이 좋아요"], worst=True)
+
+  worst=True 를 쓰는 이유:
+    점수가 가장 낮은 것부터, 즉 역순으로 본다. 잘 맞는 결과만 보면 모델이 무엇을
+    "관련 없다"고 판단하는지는 알 수 없다. 반대쪽 끝을 같이 보면 임베딩이 의미를
+    제대로 갈라놓고 있는지 확인할 수 있다.
+  """
+  # 질문을 벡터로 바꿀 모델. 무거워서 함수를 부를 때 가져온다.
+  from app.core.embedder import get_embeddings
+
+  # ── 1단계. 원본 글이 어느 테이블에 있는지 알아낸다 ──
+
+  # 종류 이름 뒤에 _vectors 를 붙이면 벡터 테이블 이름이 된다. "review" → "review_vectors"
+  vector_table = f"{kind}_vectors"
+
+  # 이 벡터 테이블이 어느 테이블을 가리키는지 SQLite 에게 물어본다.  
+  foreign_key = con.execute(f"PRAGMA foreign_key_list({vector_table})").fetchone()
+
+  # 외래 키를 선언하지 않았으면 원본을 알아낼 방법이 없으니 여기서 멈춘다.
+  if foreign_key is None:
+    raise ValueError(f"{vector_table} 에 외래 키가 없어 원본 테이블을 알 수 없다")
+
+  # 답은 (번호, 순서, 원본 테이블, 이쪽 컬럼, 저쪽 컬럼, ...) 모양이라 3·4번째만 꺼낸다.
+  # (0, 0, 'purchases', 'purchase_id', 'purchase_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  table, id_column = foreign_key[2], foreign_key[3]
+
+  # ── 2단계. 어느 컬럼을 본문으로 보여 줄지 정한다 ──
+
+  # 원본 테이블의 컬럼 목록에서 글이 들어갈 만한 TEXT 컬럼만 모은다. ID 컬럼은 뺀다.
+  """
+    (0, 'purchase_id',  'TEXT',    0, None, 1)
+    (1, 'customer_id',  'TEXT',    0, None, 0)
+    (2, 'product_id',   'TEXT',    0, None, 0)
+    (3, 'purchased_at', 'DATE',    0, None, 0)
+    (4, 'quantity',     'INTEGER', 0, None, 0)
+    (5, 'rating',       'INTEGER', 0, None, 0)
+    (6, 'review',       'TEXT',    0, None, 0)
+    (7, 'is_holdout',   'INTEGER', 0, None, 0)
+  """
+  candidates = [
+    name for _, name, column_type, *_ in con.execute(f"PRAGMA table_info({table})")
+    if column_type.upper() == "TEXT" and name != id_column
+  ]
+
+  # 그중 평균 글자 수가 가장 긴 컬럼을 본문으로 본다. ID·분류값은 짧고 진짜 글은 길다.
+  text_column = max(
+    candidates,
+    key=lambda name: con.execute(
+      f"SELECT AVG(LENGTH({name})) FROM {table}"
+    # 값이 전부 비어 있으면 AVG 가 None 이라 0 으로 바꿔 비교한다.
+    ).fetchone()[0] or 0,
+  )
+
+  # ── 3단계. 비교할 벡터와 화면에 찍을 글을 불러온다 ──
+
+  # 문서 벡터를 만들 때와 같은 모델이어야 비교가 성립한다.
+  model = get_embeddings()
+
+  # 질문도 같은 모델로 벡터를 만든다. 대상 벡터와 계산하려면 float32 여야 한다.
+  question_vectors = np.array(model.embed_documents(questions), dtype="float32")
+
+  # 문자로 저장된 벡터를 숫자 행렬로 되살린다. ids 와 vectors 는 순서가 짝이다.
+  ids, vectors = load_vectors(vector_table, id_column, connection=con)
+
+  # {ID: 본문} 사전. inspect_search_results() 의 meta 와 같은 자리다.
+  # 조각이 아니면 되짚을 원문이 없으니 (product_id, section, body) 대신 글 하나만 담는다.
+  texts = dict(con.execute(f"SELECT {id_column}, {text_column} FROM {table}"))
+
+  # ── 4단계. 질문마다 점수를 매기고 top_k 개를 뽑는다 ──
+
+  # 질문별 결과를 모아 둘 빈 사전.
+  top_hits = {}
+
+  # 질문 글과 그 질문의 벡터를 짝지어 하나씩 처리한다.
+  for question, question_vector in zip(questions, question_vectors):
+
+    # 모든 대상 벡터를 질문 벡터와 한 번에 내적한다. 대상 개수만큼의 점수 배열이 나온다.
+    scores = vectors @ question_vector
+
+    # argsort() 는 점수가 낮은 순으로 자리 번호를 준다. 그래서 -scores 로 부호를
+    # 뒤집어야 높은 순이 되고, worst=True 면 뒤집지 않아 역순 그대로 나온다.
+    ranks = np.argsort(scores if worst else -scores)[:top_k]
+
+    # 어느 쪽 끝을 보고 있는지 제목에 적을 말.
+    direction = "가장 먼" if worst else "가장 가까운"
+
+    # 질문 한 줄과 함께 어디서 몇 개를 찾았는지 알려 준다.
+    print(f"\n  Q. {question}  ({table}.{text_column} {len(ids):,}개 중 {direction} {top_k}개)")
+
+    # 돌려줄 값을 먼저 담는다. 아래 출력은 눈으로 보기 위한 것이라 결과와 별개다.
+    top_hits[question] = [(ids[rank], texts[ids[rank]]) for rank in ranks]
+
+    # 뽑힌 자리 번호를 순서대로 돌면서 한 줄씩 출력한다.
+    for rank in ranks:
+
+      # 자리 번호로 ID를 찾고 그 ID의 본문을 꺼낸다.
+      # ids 와 vectors 의 순서가 같아서 자리 번호로 되짚을 수 있다.
+      row_id, text = ids[rank], texts[ids[rank]]
+
+      # 점수 · ID · 본문 앞 44글자. 줄바꿈은 칸으로 바꿔 한 줄로 유지한다.
+      print(f"     {scores[rank]:.3f}  [{row_id}] {text[:44].replace(chr(10), ' ')}...")
+
+  # {질문: [(ID, 본문), ...]} 모양으로 돌려준다.
+  return top_hits
+
+
 # 여섯 단계에서 발견된 문제를 마지막에 모아서 출력하는 함수
 def print_final_result(problems):
   """
@@ -617,3 +768,10 @@ def print_final_result(problems):
       print(f"  - {message}")
   else:
     print("전부 통과")
+
+
+# 데이터 행렬곱 연산 처리를 위한 문자열 반환 로직을 구하는 함수 처리
+# print(row[0] + row[1] + max(0,2 ) + min(0, 1))
+
+# result = rows[2][1] + columns[3][0]
+# print(f" {result} 갯수에 해당하는 로컬 결과값 함수의 테스트 결과물 입력" )

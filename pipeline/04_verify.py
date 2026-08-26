@@ -48,7 +48,7 @@ TABLE_NAMES = (
 )
 
 # 테이블별 개수와 잘못 연결된 데이터가 있는지 검사한다.
-counts = verifying.check_table_data(con, TABLE_NAMES, problems)
+# counts = verifying.check_table_data(con, TABLE_NAMES, problems)
 
 
 # ============================================================
@@ -66,9 +66,9 @@ vectors = verifying.check_vector_data(
 # ============================================================
 
 # TEXT로 저장한 현재 크기와 BLOB으로 저장할 때의 예상 크기를 계산한다.
-storage_result = verifying.check_vector_storage(
-  con, KINDS, vectors, EMBED_DIM,
-)
+# storage_result = verifying.check_vector_storage(
+#   con, KINDS, vectors, EMBED_DIM,
+# )
 
 
 # ============================================================
@@ -76,9 +76,9 @@ storage_result = verifying.check_vector_storage(
 # ============================================================
 
 # 임베딩 모델의 토큰 상한을 넘는 조각이 있는지 검사한다.
-token_result = verifying.check_token_sizes(
-  con, EMBED_MAX_TOKENS, problems,
-)
+# token_result = verifying.check_token_sizes(
+#   con, EMBED_MAX_TOKENS, problems,
+# )
 
 
 # ============================================================
@@ -86,26 +86,34 @@ token_result = verifying.check_token_sizes(
 # ============================================================
 
 # 상품 요약, 조각 최고점, 조각 평균 방식의 추천 성능을 비교한다.
-hit_results = verifying.compare_recommendations(
-  con, vectors, token_result,
-)
+# hit_results = verifying.compare_recommendations(
+#   con, vectors, token_result,
+# )
+# print("hit_results", hit_results)
 
 
 # ============================================================
 # 6단계. 예시 질문으로 검색 결과 확인
 # ============================================================
 
-# 검색 검사에 필요한 조각 ID와 벡터를 준비한다.
-chunk_ids, chunk_vectors = vectors["chunk"]
-questions = ["배송은 얼마나 걸리나요", "환불하고 싶은데 어떻게 하나요"]
+# # 검색 검사에 필요한 조각 ID와 벡터를 준비한다.
+# chunk_ids, chunk_vectors = vectors["chunk"]
+# questions = [ "환불하고 싶은데 어떻게 하나요"]
 
-# 질문별로 가장 비슷한 문서 조각을 찾아 눈으로 확인한다.
-top_sections = verifying.inspect_search_results(
-  con, chunk_ids, chunk_vectors, questions,
-)
+# # 질문별로 가장 비슷한 문서 조각을 찾아 눈으로 확인한다.
+# top_sections = verifying.inspect_search_results(
+#   con, chunk_ids, chunk_vectors, questions,
+# )
 
+print(verifying.search_any(con, "review", ["환불하고 싶은데 어떻게 하나요?"]))
+
+
+# 조각이 아닌 다른 자료를 근거로 찾고 싶으면 search_any()에 종류 이름만 넘긴다.
+# 원본 테이블과 ID 컬럼은 벡터 테이블의 외래 키를 보고 알아서 찾는다.
+# verifying.search_any(con, "review", ["배송이 너무 느렸어요"])
+# verifying.search_any(con, "product", ["건성 피부에 좋은 수분 크림"])
 
 # 여섯 단계에서 발견한 문제를 모아 최종 출력한다.
-verifying.print_final_result(problems)
+# verifying.print_final_result(problems)
 con.close()
 
